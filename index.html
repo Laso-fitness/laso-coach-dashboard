@@ -858,7 +858,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         <div>
           <div class="card" style="padding:0;overflow:hidden;">
             <div id="liveMapContainer">
-              <div id="liveMapEl"></div>
+              <div id="liveMapEl" style="width:100%;height:340px;border-radius:12px;background:#111;"></div>
             </div>
           </div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;">
@@ -1201,6 +1201,30 @@ function hdr(tok) {
     if (!s) return;
     _session = JSON.parse(s);
     if (_session && _session.expires_at && Date.now()/1000 > _session.expires_at - 60) {
+      // Token near expiry — attempt refresh before giving up
+      if (_session.refresh_token) {
+        fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
+          body: JSON.stringify({ refresh_token: _session.refresh_token })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+          if (d.access_token) {
+            _session = Object.assign(_session, {
+              access_token: d.access_token,
+              refresh_token: d.refresh_token || _session.refresh_token,
+              expires_at: Math.floor(Date.now()/1000) + (d.expires_in || 3600)
+            });
+            if (d.user) { _session.user = d.user; _coach = d.user; }
+            localStorage.setItem('laso_coach_session', JSON.stringify(_session));
+            bootDashboard();
+          } else {
+            _session = null; localStorage.removeItem('laso_coach_session');
+          }
+        }).catch(function() {
+          _session = null; localStorage.removeItem('laso_coach_session');
+        });
+        return; // Wait for async refresh
+      }
       _session = null; localStorage.removeItem('laso_coach_session'); return;
     }
     if (_session && _session.user) {
@@ -1565,6 +1589,14 @@ async function postAnnouncement() {
   var clubId = document.getElementById('annoClub').value;
   if (!msg) { toast('Enter a message', true); return; }
   var ann = { message: msg, type: type, club_id: clubId === 'all' ? null : clubId, posted_at: new Date().toISOString(), posted_by: _coach ? _coach.id : null };
+  try {
+    // Save to DB first so announcements survive page refresh
+    await sbPost('announcements', ann);
+  } catch(e) {
+    // Table may not exist yet — fall back to in-memory with a warning
+    console.warn('Announcement DB save failed (announcements table may not exist):', e);
+    toast('Posted in session only — announcements table not yet created in Supabase', true);
+  }
   _announcements.unshift(ann);
   renderAnnouncementsList();
   document.getElementById('annoMessage').value = '';
@@ -1703,6 +1735,79 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 
+
+<script>
+/* ── Supabase client for Coach Dashboard ────────────── */
+(function(){
+  var SUPA_URL = 'https://omacnuxopfkdcnyfzztc.supabase.co';
+  var SUPA_KEY = 'sb_publishable_X42ydXB4MD9NOLAagemrQQ_5DtJ4qeT';
+  var channels = {};
+
+  window._aetDB = {
+    channel: function(name, opts) {
+      var listeners = [];
+      var subCb = null;
+      var ws = null;
+
+      var ch = {
+        on: function(type, filter, cb) {
+          if (type === 'broadcast') listeners.push({ event: filter.event, cb: cb });
+          return ch;
+        },
+        subscribe: function(cb) {
+          subCb = cb;
+          // Connect via WebSocket to Supabase Realtime
+          var wsUrl = SUPA_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SUPA_KEY + '&vsn=1.0.0';
+          try {
+            ws = new WebSocket(wsUrl);
+            ws.onopen = function() {
+              var joinMsg = JSON.stringify({
+                topic: 'realtime:' + name,
+                event: 'phx_join',
+                payload: { config: { broadcast: { self: true } } },
+                ref: '1'
+              });
+              ws.send(joinMsg);
+            };
+            ws.onmessage = function(e) {
+              try {
+                var msg = JSON.parse(e.data);
+                if (msg.event === 'phx_reply' && msg.payload && msg.payload.status === 'ok') {
+                  if (subCb) subCb('SUBSCRIBED');
+                }
+                if (msg.event === 'broadcast') {
+                  var bEvent = msg.payload && msg.payload.event;
+                  var bPayload = msg.payload && msg.payload.payload;
+                  listeners.forEach(function(l) {
+                    if (l.event === bEvent) l.cb({ payload: bPayload });
+                  });
+                }
+              } catch(err) {}
+            };
+            ws.onerror = function() { if (subCb) subCb('CHANNEL_ERROR'); };
+            ws.onclose = function() { if (subCb) subCb('CLOSED'); };
+          } catch(err) {
+            console.warn('Realtime WS error:', err);
+            if (subCb) subCb('CHANNEL_ERROR');
+          }
+          channels[name] = { ch: ch, ws: ws };
+          return ch;
+        }
+      };
+      return ch;
+    },
+    removeChannel: function(ch) {
+      Object.keys(channels).forEach(function(k) {
+        if (channels[k].ch === ch) {
+          try { if (channels[k].ws) channels[k].ws.close(); } catch(e) {}
+          delete channels[k];
+        }
+      });
+    }
+  };
+})();
+</script>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* ================================================================
@@ -1718,9 +1823,10 @@ function liveMapConnect(clubCode) {
   if (!clubCode) { toast('Select a club first', true); return; }
   liveMapDisconnect();
 
-  // Init map if needed
+  // Init map if needed — synchronous to avoid timing issues
   if (!liveMap) {
-    setTimeout(function() {
+    var mapEl = document.getElementById('liveMapEl');
+    if (mapEl && typeof L !== 'undefined') {
       liveMap = L.map('liveMapEl', {
         center: [38.9072, -77.0369],
         zoom: 14,
@@ -1730,7 +1836,11 @@ function liveMapConnect(clubCode) {
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19, subdomains: 'abcd'
       }).addTo(liveMap);
-    }, 100);
+      setTimeout(function(){ liveMap.invalidateSize(); }, 200);
+    } else {
+      console.warn('Leaflet not loaded or map container missing');
+      return;
+    }
   }
 
   // Connect to the club broadcast channel
@@ -1799,11 +1909,12 @@ function liveMapUpdateMarker(d) {
     liveMapMarkers[d.userId] = L.marker([d.lat, d.lon], { icon: icon })
       .addTo(liveMap)
       .bindPopup(label);
-    // Pan map to first runner
-    if (Object.keys(liveMapMarkers).length === 1) {
-      liveMap.setView([d.lat, d.lon], 15);
-    }
   }
+  // Re-center on average position of all active runners
+  var ids = Object.keys(liveMapMarkers);
+  var avgLat = ids.reduce(function(s,id){return s+liveMapMarkers[id].getLatLng().lat;},0)/ids.length;
+  var avgLng = ids.reduce(function(s,id){return s+liveMapMarkers[id].getLatLng().lng;},0)/ids.length;
+  liveMap.setView([avgLat, avgLng], ids.length === 1 ? 15 : liveMap.getZoom());
 }
 
 function liveMapUpdateSidebar() {
