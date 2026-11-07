@@ -690,6 +690,42 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   margin-top: 20px;
   line-height: 1.6;
 }
+
+/* Multi-player court lab — isolated from existing run-club views */
+.court-state{font-size:10px;letter-spacing:.09em;font-weight:700;padding:9px 12px;color:#e6c36b;background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.28);border-radius:8px}
+.court-banner{border-left:3px solid var(--gold);background:var(--ink2);color:var(--text-dim);padding:16px 19px;margin:0 0 22px;line-height:1.65}
+.court-banner strong{color:var(--text)}
+.court-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+.court-file-picker{position:relative;cursor:pointer;background:var(--gold);color:#121218;border-radius:8px;font-weight:800;padding:11px 18px;overflow:hidden;min-height:40px}
+.court-file-picker input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.court-options{border-block:1px solid var(--border);padding:12px 0;gap:16px}
+.court-options>label{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--text-dim)}
+.court-options .form-input{width:auto;min-width:115px;padding:6px}
+.court-check input{accent-color:var(--gold);width:17px;height:17px}
+.court-status{font-size:12px;min-height:25px;color:#badbc7}
+.court-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,290px);gap:20px;align-items:start}
+.court-primary{min-width:0}
+.court-stage{position:relative;aspect-ratio:16 / 9;background:#091216;border:1px solid #3d4c48;overflow:hidden;border-radius:12px;width:100%;min-height:190px}
+.court-stage video{width:100%;height:100%;object-fit:contain;position:absolute;inset:0;background:#091216}
+.court-stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.court-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}
+.court-metrics>div{border:1px solid var(--border);background:var(--ink2);border-radius:9px;padding:13px}
+.court-metrics small{color:var(--text-muted);display:block;font-size:10px;margin-bottom:9px}
+.court-metrics strong{color:var(--gold-lt);font-family:'JetBrains Mono',monospace;font-size:19px}
+.court-hint{color:var(--text-dim);font-size:12px;line-height:1.65;margin:11px 0}
+.court-side{background:var(--ink2);padding:18px;border:1px solid var(--border);border-radius:12px}
+.court-side h3{font-family:'Bebas Neue',sans-serif;font-size:23px;letter-spacing:.06em;color:var(--gold)}
+.court-player-list{display:grid;gap:6px;max-height:365px;overflow:auto;margin-top:13px}
+.court-player{border:1px solid var(--border);border-left:4px solid var(--player-color,var(--gold));border-radius:6px;background:var(--ink3);padding:10px;color:var(--text);text-align:left;cursor:pointer;display:grid;gap:3px}
+.court-player.selected{background:#303024;border-color:var(--gold)}
+.court-player strong{font-size:12px}.court-player small{font-size:10px;color:var(--text-muted)}
+.court-team-label{display:grid;gap:8px;margin-top:20px;color:var(--text-dim);font-size:11px}
+.court-track-details{font-size:12px;color:#c0cab8;line-height:1.7;border-top:1px solid var(--border);margin-top:16px;padding-top:13px}
+.court-research-note{font-size:10px;letter-spacing:.08em;color:var(--gold);border:1px solid rgba(201,162,39,.22);padding:12px;margin-top:24px;border-radius:8px}
+.court-research-note p{color:var(--text-dim);letter-spacing:0;margin-top:9px;line-height:1.6;font-size:11px}
+@media(max-width:1030px){.court-layout{grid-template-columns:1fr}.court-side{max-width:none}.court-player-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:unset}}
+@media(max-width:620px){.court-controls .btn{font-size:11px;padding:10px}.court-player-list{grid-template-columns:1fr}.court-metrics strong{font-size:14px}.court-metrics>div{padding:9px}.court-state{font-size:9px}.court-layout{gap:12px}}
+
 </style>
 </head>
 <body>
@@ -716,6 +752,10 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
   <div class="sidebar-section">
     <div class="sidebar-section-label">Live</div>
+    <button class="nav-item" onclick="showView('multicourt')" id="nav-multicourt">
+      <span class="nav-icon">🏀</span> Multi-Player Court
+      <span class="nav-badge" style="font-size:9px;background:rgba(201,162,39,.12);color:#e8c84a">BETA</span>
+    </button>
     <button class="nav-item" onclick="showView('livemap')" id="nav-livemap">
       <span class="nav-icon">🗺️</span> Live Run Map
       <span class="live-dot" style="margin-left:auto;"></span>
@@ -838,6 +878,70 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       </div>
     </div>
 
+
+    <!-- ── BASKETBALL MULTI-PLAYER COURT LAB ── -->
+    <div class="view" id="view-multicourt">
+      <div class="section-header">
+        <div>
+          <div class="section-title">MULTI-PLAYER COURT LAB</div>
+          <div class="section-sub">Basketball · Up to 10 anonymous player tracks · Experimental computer vision</div>
+        </div>
+        <div class="court-state">LOCAL PROCESSING · NO AUTOMATIC VIDEO UPLOAD</div>
+      </div>
+      <div class="court-banner">
+        <strong>Observe the entire court.</strong>
+        Analyze a recording or an authorized live camera feed, verify anonymous player tracks and export video-image observations. Occlusions, camera movement and crossing players may cause identity swaps. <strong>Not calibrated speed, distance, ground force, possession or verified athlete identity.</strong>
+      </div>
+      <div class="court-controls">
+        <label class="court-file-picker">Choose game video
+          <input id="courtFile" type="file" accept="video/*,.mp4,.mov,.webm,.m4v">
+        </label>
+        <button id="courtCamera" type="button" class="btn btn-ghost">Use camera</button>
+        <button id="courtStart" type="button" class="btn btn-primary">▶ Start tracking</button>
+        <button id="courtStop" type="button" class="btn btn-ghost" disabled>❚❚ Pause tracking</button>
+        <button id="courtReset" type="button" class="btn btn-ghost">Reset tracks</button>
+        <button id="courtExport" type="button" class="btn btn-ghost">↓ Export JSON</button>
+      </div>
+      <div class="court-controls court-options">
+        <label>Maximum people
+          <select id="courtMaxPoses" class="form-input"><option>2</option><option>4</option><option>6</option><option>8</option><option selected>10</option></select>
+        </label>
+        <label>Processing interval
+          <select id="courtSampleRate" class="form-input"><option value="120">120 ms · Faster</option><option value="200" selected>200 ms · Balanced</option><option value="350">350 ms · Battery saver</option></select>
+        </label>
+        <label class="court-check"><input id="courtSkeleton" type="checkbox" checked> Draw skeleton</label>
+        <label class="court-check"><input id="courtTrails" type="checkbox" checked> Show movement trails</label>
+      </div>
+      <p id="courtStatus" class="court-status" role="status" aria-live="polite">Select a clip or the live camera to begin.</p>
+      <div class="court-layout">
+        <div class="court-primary">
+          <div id="courtStage" class="court-stage">
+            <video id="courtVideo" playsinline preload="metadata" controls></video>
+            <canvas id="courtOverlay" aria-label="Anonymous multi-player pose and movement overlay"></canvas>
+          </div>
+          <div class="court-metrics">
+            <div><small>Visible player estimates</small><strong id="courtVisibleCount">0 / 10</strong></div>
+            <div><small>Anonymous track IDs created</small><strong id="courtTotalTracks">0</strong></div>
+            <div><small>Frames analyzed</small><strong id="courtFrames">0</strong></div>
+          </div>
+          <p class="court-hint">Best results: stationary elevated camera, entire court visible, bright lighting, 720p or better. Track numbers may reset or swap as athletes cross, leave the image, or are obscured. A second calibrated camera can improve future reliability.</p>
+        </div>
+        <aside class="court-side">
+          <h3>PLAYER TRACKS</h3>
+          <p class="court-hint">Tap a track to follow its overlay and assign a temporary team label. Player numbers are not automatically recognized.</p>
+          <div id="courtPlayerList" class="court-player-list"></div>
+          <label class="court-team-label">Selected track · team label
+            <select class="form-input" id="courtTeamAssign" disabled>
+              <option value="">Unassigned</option><option value="HOME">Home</option><option value="AWAY">Away</option><option value="OFFENSE">Offense</option><option value="DEFENSE">Defense</option>
+            </select>
+          </label>
+          <p id="courtTrackDetails" class="court-track-details">Select a track to inspect it.</p>
+          <div class="court-research-note">RESEARCH BOUNDARY
+            <p>Image-space movement history is not measured foot speed. Human subjects must consent to recording and use of their performance video, especially minors.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
 
     <!-- ── LIVE RUN MAP ──────────────────────────────────────────── -->
     <div class="view" id="view-livemap">
@@ -1681,6 +1785,7 @@ var TITLES = {
   sessions:      ['RUN SESSIONS', 'All group check-ins'],
   leaderboard:   ['LEADERBOARD', 'Top performers'],
   livemap:       ['LIVE RUN MAP', 'Real-time GPS positions'],
+  multicourt:    ['MULTI-PLAYER COURT', 'Experimental basketball tracking'],
   announcements: ['ANNOUNCEMENTS', 'Broadcast to your clubs'],
   schedule:      ['SCHEDULE', 'Upcoming events'],
 };
@@ -1964,6 +2069,18 @@ showView = function(id) {
     setTimeout(function() { liveMap.invalidateSize(); }, 150);
   }
 };
+</script>
+<script src="multi-court.js?v=1" defer></script>
+<script>
+(function(){
+ var oldShowView=showView;
+ showView=function(id){
+   if(id==='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.setup();
+   if(id!=='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.stop();
+   oldShowView(id);
+   if(id==='multicourt'&&window.LasoMultiCourt)setTimeout(function(){window.LasoMultiCourt.paint()},100);
+ };
+})();
 </script>
 </body>
 </html>
