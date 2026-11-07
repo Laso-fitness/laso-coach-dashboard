@@ -29,25 +29,44 @@ async function userSession(){
  }
  return auth.user?.id;
 }
-function signInGoogle(){
- const target=window.location.origin+'/court-lab.html';
- const url=URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(target);
- msg('Opening Google sign-in. If this site is not authorized for redirect, use your LasO email and password instead.');
- window.location.assign(url);
+const GOOGLE_PKCE_KEY='laso-court-share-google-pkce-v1';
+function b64(bytes){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function signInGoogle(){
+ try{
+   if(!crypto?.subtle)throw Error('Google sign-in needs a secure browser (Safari or Chrome).');
+   const verifier=b64(crypto.getRandomValues(new Uint8Array(32)));
+   const challenge=b64(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
+   const returnTo=window.location.origin+'/court-lab.html';
+   sessionStorage.setItem(GOOGLE_PKCE_KEY,JSON.stringify({verifier,returnTo,startedAt:Date.now()}));
+   const params=new URLSearchParams({provider:'google',redirect_to:returnTo,code_challenge:challenge,code_challenge_method:'s256',prompt:'select_account'});
+   msg('Opening Google sign-in. If Google returns an unauthorized redirect warning, the Court Lab return URL must be enabled in Supabase Auth.');
+   window.location.assign(URL+'/auth/v1/authorize?'+params.toString());
+ }catch(e){msg('Google sign-in could not start: '+e.message)}
 }
 async function receiveOAuth(){
- const raw=window.location.hash.startsWith('#')?window.location.hash.slice(1):'';
- if(!raw||!raw.includes('access_token='))return;
- const p=new URLSearchParams(raw);
- const token=p.get('access_token'),refresh=p.get('refresh_token');
- window.history.replaceState(null,'',window.location.pathname+window.location.search);
- if(!token||!refresh)return;
+ const search=new URLSearchParams(window.location.search),hash=new URLSearchParams(window.location.hash.replace(/^#/,''));
+ if(!search.has('code')&&!search.has('error')&&!hash.has('error')&&!hash.has('access_token'))return;
+ const removeParams=()=>{const u=new URL(window.location.href);for(const k of ['code','error','error_code','error_description'])u.searchParams.delete(k);u.hash='';window.history.replaceState(null,'',u.pathname+u.search)};
+ if(search.has('error')||hash.has('error')){removeParams();msg('Google sign-in was canceled or unavailable; try again.');return}
  try{
-   const res=await json(await fetch(URL+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+token}}));
-   auth={access_token:token,refresh_token:refresh,expires_at:Math.floor(Date.now()/1000)+Number(p.get('expires_in')||3600),user:res};
+   if(search.has('code')){
+     let state=null;try{state=JSON.parse(sessionStorage.getItem(GOOGLE_PKCE_KEY)||'null')}catch{}
+     const code=search.get('code');removeParams();
+     if(!state?.verifier||state.returnTo!==window.location.origin+'/court-lab.html'||Date.now()-state.startedAt>15*60000)throw Error('This Google sign-in has expired or opened in another tab. Try again here.');
+     const res=await json(await api('/auth/v1/token?grant_type=pkce',{method:'POST',body:JSON.stringify({auth_code:code,code_verifier:state.verifier})}));
+     if(!res?.access_token||!res?.refresh_token||!res?.user?.id)throw Error('The account could not be verified.');
+     auth={...res,expires_at:res.expires_at||Math.floor(Date.now()/1000)+res.expires_in};
+   }else if(hash.has('access_token')){
+     const access=hash.get('access_token'),refresh=hash.get('refresh_token'),seconds=Number(hash.get('expires_in'));removeParams();
+     if(!access||!refresh||!Number.isFinite(seconds)||seconds<=0)throw Error('This sign-in link was incomplete.');
+     const user=await json(await fetch(URL+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+access}}));
+     if(!user?.id)throw Error('The account could not be verified.');
+     auth={user,access_token:access,refresh_token:refresh,expires_at:Math.floor(Date.now()/1000)+seconds};
+   }
    sessionStorage.setItem(ST,JSON.stringify(auth));
-   showAccount();msg('Google account connected. Confirm athlete permission and enable sharing only when ready.');
- }catch(e){msg('Google sign-in could not be confirmed: '+e.message)}
+   showAccount();msg('Google sign-in verified. Please confirm athlete permission before enabling any sharing.');
+ }catch(e){msg('Google sign-in failed: '+e.message)}
+ finally{sessionStorage.removeItem(GOOGLE_PKCE_KEY)}
 }
 async function signIn(){
  const email=$('courtShareEmail').value.trim(),password=$('courtSharePassword').value;
