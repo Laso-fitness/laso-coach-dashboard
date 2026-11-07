@@ -19,11 +19,49 @@ main{max-width:1400px;padding:35px clamp(14px,4vw,48px) 80px;margin:auto}
 footer{font-size:11px;color:#777;padding:30px 0;border-top:1px solid #343438;line-height:1.6}
 @media(max-width:860px){.court-layout{grid-template-columns:1fr}.court-side{max-width:none}.court-player-list{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:540px){header{align-items:flex-start;flex-direction:column}.court-player-list{grid-template-columns:1fr}.court-metrics>div{padding:8px}.court-metrics strong{font-size:17px}}
+
+.court-live-panel{margin:25px 0 22px;padding:20px;background:linear-gradient(140deg,#1d2a27,#18181a 70%);border:1px solid #6a8069;border-radius:13px;color:#f1f2e9}
+.court-share-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.court-share-head strong{font-size:15px;letter-spacing:.09em;color:#e7cc7a}.court-share-head span{white-space:nowrap;color:#a6ce99;font-size:10px;font-weight:800;border:1px solid #5d805b;padding:7px}
+.court-share-head p,.court-share-login p,.court-share-smallprint{font-size:12px;line-height:1.6;color:#afb9ad;margin:9px 0 14px}
+.court-share-login{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+.court-share-login p{flex-basis:100%;margin-bottom:0}
+.court-share-login input{color:#f5f5ed;background:#0c1717;border:1px solid #53665e;border-radius:7px;padding:12px;min-height:43px;flex:1;min-width:180px}
+.court-live-panel button{min-height:40px;padding:9px 14px;border:1px solid #afaa70;background:#d7b859;color:#171915;border-radius:7px;font-weight:800;cursor:pointer}
+.court-live-panel button:disabled{opacity:.5;cursor:not-allowed}.court-share-account{font-size:12px;color:#d8e0c9;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:15px 0}
+.court-share-account button,.court-share-buttons #courtShareStop{background:transparent;color:#e7d1ac}
+.court-share-consent{display:flex;gap:10px;align-items:start;color:#e0e7d5;font-size:13px;line-height:1.6;margin:16px 0}
+.court-share-consent input{accent-color:#d5b84f;margin-top:5px;min-width:17px;min-height:17px}
+.court-share-buttons{display:flex;flex-wrap:wrap;gap:10px}.court-share-code-intro{font-size:12px;color:#baceba;margin:19px 0 8px}
+#courtShareCode{display:block;padding:13px;background:#091719;color:#e5f6be;border:1px dashed #5d876f;overflow-wrap:anywhere;user-select:all;margin:10px 0 12px;font-size:14px}
+#courtLiveStatus{font-size:12px;color:#bed6c7;line-height:1.6;margin:14px 0}
+.court-share-smallprint{font-size:11px!important;margin-bottom:0}
+[hidden]{display:none!important}
+@media(max-width:600px){.court-live-panel{padding:15px}.court-share-head{flex-direction:column}.court-share-login input{flex-basis:100%}.court-share-login button{width:100%}}
+
 </style></head><body>
 <header><div class="brand">LASO <span>COACH / COURT LAB</span></div><nav class="headerlinks"><a href="/">← Coach Command Center</a><a href="https://laso-ai-trainer.netlify.app/">LasO AI Trainer</a></nav></header>
 <main><div class="tag">MULTI-SUBJECT MOVEMENT ANALYSIS · PILOT v1</div><h1>TRACK THE<br>WHOLE COURT.</h1>
 <p class="lead">Observe multiple basketball players in one camera frame. Number anonymous tracks, view their skeletons and paths, inspect motion, and export timestamped observations for further coaching analysis.</p>
 <div class="notice"><strong>All video processing stays inside your browser.</strong> Clips and live camera frames are not sent to LasO servers by this tool. Obtain recording permission from the athletes first, especially if minors are involved. Pose tracking can lose or switch IDs when people overlap. No verified court distance, body force, identities, ball possession or tactical statistics are claimed.</div>
+
+<section class="court-live-panel" id="courtLivePanel" aria-label="Private live AI observation sharing">
+  <div class="court-share-head"><div><strong>SHARE LIVE WITH CHATGPT</strong><p>Temporary low-resolution camera snapshots plus anonymous player locations. This is not a continuous video call.</p></div><span>OFF BY DEFAULT</span></div>
+  <div id="courtShareLogin" class="court-share-login">
+    <p>Sign in using your existing LasO account (the same account as the current AI Trainer / App-e-Tight system).</p>
+    <input id="courtShareEmail" type="email" inputmode="email" autocomplete="username" placeholder="LasO account email" aria-label="LasO account email">
+    <input id="courtSharePassword" type="password" autocomplete="current-password" placeholder="Password" aria-label="LasO password">
+    <button id="courtShareSignIn" type="button">Sign in to enable private sharing</button>
+  </div>
+  <div id="courtShareControls" hidden>
+    <div class="court-share-account">Signed in: <strong id="courtShareAccount"></strong> <button id="courtShareSignOut" type="button">Sign out</button></div>
+    <label class="court-share-consent"><input id="courtShareConsent" type="checkbox"> I confirm I have appropriate permission to share these players' camera images for private AI-assisted performance analysis, including permission from a parent/guardian if required.</label>
+    <div class="court-share-buttons"><button id="courtShareStart" type="button">Start sharing live</button><button id="courtShareStop" type="button" disabled>Stop sharing</button></div>
+    <div id="courtShareStarted" hidden><p class="court-share-code-intro">Send this session code in the ChatGPT conversation so the assistant can inspect current frames:</p><code id="courtShareCode">No active share</code><button type="button" id="courtShareCopy">Copy session code</button></div>
+  </div>
+  <p id="courtLiveStatus" role="status" aria-live="polite">Sharing is off. No video is uploaded unless you explicitly start it.</p>
+  <p class="court-share-smallprint">Images are downsampled before upload. Frames expire after approximately 10–15 minutes; the share expires after 45 minutes. Video is not stored as a recording. Only signed-in owners can access their own sessions in the app. ChatGPT can read a session when you provide its code, but cannot watch autonomously between messages.</p>
+</section>
 <div class="court-controls"><label class="court-file-picker">Choose court video <input id="courtFile" type="file" accept="video/*,.mp4,.mov,.webm,.m4v"></label><button id="courtCamera">Use live camera</button><button id="courtStart" class="primary">▶ Start tracking</button><button id="courtStop" disabled>❚❚ Pause tracking</button><button id="courtReset">Reset tracks</button><button id="courtExport">↓ Export JSON</button></div>
 <div class="court-controls court-options"><label>People limit <select id="courtMaxPoses" class="form-input"><option>2</option><option>4</option><option>6</option><option>8</option><option selected>10</option></select></label><label>Sample interval <select id="courtSampleRate" class="form-input"><option value="120">120 ms</option><option value="200" selected>200 ms</option><option value="350">350 ms</option></select></label><label><input type="checkbox" id="courtSkeleton" checked> Skeletons</label><label><input type="checkbox" id="courtTrails" checked> Trails</label></div>
 <p id="courtStatus" class="court-status" role="status">Choose a video or camera.</p>
@@ -31,4 +69,4 @@ footer{font-size:11px;color:#777;padding:30px 0;border-top:1px solid #343438;lin
 <div class="court-metrics"><div><small>Visible tracks</small><strong id="courtVisibleCount">0 / 10</strong></div><div><small>Track IDs created</small><strong id="courtTotalTracks">0</strong></div><div><small>Frames sampled</small><strong id="courtFrames">0</strong></div></div>
 <p class="court-hint">For best results, use a steady elevated camera with a clear wide view of the court. Lower the people limit or processing rate on older iPads if playback stutters. Track numbers are provisional; they do not verify which roster player is which.</p></div>
 <aside class="court-side"><h3>TRACKED PLAYERS</h3><p class="court-hint">Select a number to inspect that person's visible tracking observations.</p><div id="courtPlayerList" class="court-player-list"></div><label class="court-team-label">Temporary team label <select id="courtTeamAssign" class="form-input" disabled><option value="">Unassigned</option><option value="HOME">Home</option><option value="AWAY">Away</option><option value="OFFENSE">Offense</option><option value="DEFENSE">Defense</option></select></label><p id="courtTrackDetails" class="court-track-details">Select a track.</p><div class="court-research-note">This is the first multi-person observation engine. Calibrated court coordinates, robust re-identification, ball tracking and multi-camera synchronization require additional development and testing.</div></aside></div>
-<footer>LasO 360 · Private-source footage remains on the user’s device. Exports only occur when explicitly requested. Tracking accuracy must be evaluated with representative basketball video before performance claims are made.</footer></main><script src="multi-court.js?v=3" defer></script><script>document.addEventListener('DOMContentLoaded',function(){if(window.LasoMultiCourt)window.LasoMultiCourt.setup()});</script></body></html>
+<footer>LasO 360 · Private-source footage remains on the user’s device. Exports only occur when explicitly requested. Tracking accuracy must be evaluated with representative basketball video before performance claims are made.</footer></main><script src="multi-court.js?v=4" defer></script><script src="live-share.js?v=1" defer></script><script>document.addEventListener('DOMContentLoaded',function(){if(window.LasoMultiCourt)window.LasoMultiCourt.setup();if(window.LasoCourtLiveShare)window.LasoCourtLiveShare.init()});</script></body></html>
