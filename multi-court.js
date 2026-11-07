@@ -126,5 +126,13 @@ function setup(){
 }
 function deactivate(){stop();stopStream();if(source==='live camera'){video.pause();video.srcObject=null;source=null;status('Live camera stopped when leaving Court Lab.')}}
 window.addEventListener('pagehide',deactivate);
-window.LasoMultiCourt={setup,stop,deactivate,paint};
+function getSnapshot(){
+ const now=performance.now();
+ return {running:active,source:source,video:video,frameCount:frames,
+  tracks:[...tracks.values()].filter(t=>now-t.last<950).slice(0,10).map(t=>({
+    id:t.id,x:+t.center.x.toFixed(4),y:+t.center.y.toFixed(4),
+    confidence:+t.confidence.toFixed(2),team:teams.get(t.id)||null,
+    samples:t.count}))};
+}
+window.LasoMultiCourt={setup,stop,deactivate,paint,getSnapshot};
 })();
