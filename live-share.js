@@ -65,16 +65,28 @@ async function stopShare(){
  $('courtShareStarted').hidden=true;
  msg('Sharing stopped on this device. Previous temporary frames expire automatically.');
 }
-function captureFrame(video){
+function captureFrame(video,tracks){
  if(!video||video.readyState<2||!video.videoWidth)return null;
- const factor=Math.min(1,380/video.videoWidth),w=Math.max(32,Math.round(video.videoWidth*factor)),h=Math.max(18,Math.round(video.videoHeight*factor));
+ const factor=Math.min(1,400/video.videoWidth),w=Math.max(32,Math.round(video.videoWidth*factor)),h=Math.max(18,Math.round(video.videoHeight*factor));
  const can=document.createElement('canvas');can.width=w;can.height=h;
- can.getContext('2d').drawImage(video,0,0,w,h);
- let data=can.toDataURL('image/jpeg',.32).split(',')[1];
+ function draw(){
+   const g=can.getContext('2d');g.drawImage(video,0,0,can.width,can.height);
+   for(const t of tracks||[]){
+     const x=t.x*can.width,y=t.y*can.height;
+     if(!Number.isFinite(x)||!Number.isFinite(y))continue;
+     g.beginPath();g.arc(x,y,Math.max(5,can.width*.014),0,2*Math.PI);
+     g.strokeStyle='#ffe175';g.lineWidth=2.5;g.stroke();
+     const label='P'+t.id;
+     g.font='bold 13px system-ui';g.fillStyle='#ffe175';
+     g.fillRect(x+5,y-22,27,19);g.fillStyle='#13201f';g.fillText(label,x+8,y-8);
+   }
+ }
+ draw();
+ let data=can.toDataURL('image/jpeg',.31).split(',')[1];
  if(data.length>82000){
-   can.width=Math.max(32,Math.round(w*.73));can.height=Math.max(18,Math.round(h*.73));
-   can.getContext('2d').drawImage(video,0,0,can.width,can.height);
-   data=can.toDataURL('image/jpeg',.23).split(',')[1];
+   can.width=Math.max(32,Math.round(w*.72));can.height=Math.max(18,Math.round(h*.72));
+   draw();
+   data=can.toDataURL('image/jpeg',.21).split(',')[1];
  }
  return data.length<=84000?{frame_jpeg_b64:data,frame_width:can.width,frame_height:can.height}:null;
 }
@@ -85,7 +97,7 @@ async function sendSample(){
    const uid=await userSession(),sample=window.LasoMultiCourt?.getSnapshot?.();
    if(!sample?.running||!sample.video||sample.video.paused)return;
    if(Date.now()>Date.parse(share.expires_at)){stopTimers();msg('Live share expired after 45 minutes. Start a new share if needed.');return}
-   const image=captureFrame(sample.video);
+   const image=captureFrame(sample.video,sample.tracks);
    if(!image){msg('Unable to capture a temporary frame; check whether the camera is playing.');return}
    const row={share_id:share.id,owner_id:uid,player_count:sample.tracks.length,tracks:sample.tracks,
      video_seconds:sample.source==='live camera'?null:sample.video.currentTime,expires_at:new Date(Date.now()+10*60000).toISOString(),...image};
