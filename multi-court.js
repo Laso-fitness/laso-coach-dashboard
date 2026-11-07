@@ -81,7 +81,7 @@ async function start(){
  if(!source)throw Error('Choose a video or camera.');
  if(active)return;el('courtStart').disabled=true;
  try{
-  await loadModel();if(video.paused)await video.play();active=true;el('courtStop').disabled=false;last=0;
+  if(video.paused)await video.play();await loadModel();active=true;el('courtStop').disabled=false;last=0;
   let tick=()=>{
    if(!active)return;raf=requestAnimationFrame(tick);
    if(busy||video.paused||video.readyState<2)return;
