@@ -726,6 +726,26 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 @media(max-width:1030px){.court-layout{grid-template-columns:1fr}.court-side{max-width:none}.court-player-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:unset}}
 @media(max-width:620px){.court-controls .btn{font-size:11px;padding:10px}.court-player-list{grid-template-columns:1fr}.court-metrics strong{font-size:14px}.court-metrics>div{padding:9px}.court-state{font-size:9px}.court-layout{gap:12px}}
 
+
+.court-live-panel{margin:25px 0 22px;padding:20px;background:linear-gradient(140deg,#1d2a27,#18181a 70%);border:1px solid #6a8069;border-radius:13px;color:#f1f2e9}
+.court-share-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.court-share-head strong{font-size:15px;letter-spacing:.09em;color:#e7cc7a}.court-share-head span{white-space:nowrap;color:#a6ce99;font-size:10px;font-weight:800;border:1px solid #5d805b;padding:7px}
+.court-share-head p,.court-share-login p,.court-share-smallprint{font-size:12px;line-height:1.6;color:#afb9ad;margin:9px 0 14px}
+.court-share-login{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+.court-share-login p{flex-basis:100%;margin-bottom:0}
+.court-share-login input{color:#f5f5ed;background:#0c1717;border:1px solid #53665e;border-radius:7px;padding:12px;min-height:43px;flex:1;min-width:180px}
+.court-live-panel button{min-height:40px;padding:9px 14px;border:1px solid #afaa70;background:#d7b859;color:#171915;border-radius:7px;font-weight:800;cursor:pointer}
+.court-live-panel button:disabled{opacity:.5;cursor:not-allowed}.court-share-account{font-size:12px;color:#d8e0c9;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:15px 0}
+.court-share-account button,.court-share-buttons #courtShareStop{background:transparent;color:#e7d1ac}
+.court-share-consent{display:flex;gap:10px;align-items:start;color:#e0e7d5;font-size:13px;line-height:1.6;margin:16px 0}
+.court-share-consent input{accent-color:#d5b84f;margin-top:5px;min-width:17px;min-height:17px}
+.court-share-buttons{display:flex;flex-wrap:wrap;gap:10px}.court-share-code-intro{font-size:12px;color:#baceba;margin:19px 0 8px}
+#courtShareCode{display:block;padding:13px;background:#091719;color:#e5f6be;border:1px dashed #5d876f;overflow-wrap:anywhere;user-select:all;margin:10px 0 12px;font-size:14px}
+#courtLiveStatus{font-size:12px;color:#bed6c7;line-height:1.6;margin:14px 0}
+.court-share-smallprint{font-size:11px!important;margin-bottom:0}
+[hidden]{display:none!important}
+@media(max-width:600px){.court-live-panel{padding:15px}.court-share-head{flex-direction:column}.court-share-login input{flex-basis:100%}.court-share-login button{width:100%}}
+
 </style>
 </head>
 <body>
@@ -892,7 +912,25 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         <strong>Observe the entire court.</strong>
         Analyze a recording or an authorized live camera feed, verify anonymous player tracks and export video-image observations. Occlusions, camera movement and crossing players may cause identity swaps. <strong>Not calibrated speed, distance, ground force, possession or verified athlete identity.</strong>
       </div>
-      <div class="court-controls">
+      
+<section class="court-live-panel" id="courtLivePanel" aria-label="Private live AI observation sharing">
+  <div class="court-share-head"><div><strong>SHARE LIVE WITH CHATGPT</strong><p>Temporary low-resolution camera snapshots plus anonymous player locations. This is not a continuous video call.</p></div><span>OFF BY DEFAULT</span></div>
+  <div id="courtShareLogin" class="court-share-login">
+    <p>Sign in using your existing LasO account (the same account as the current AI Trainer / App-e-Tight system).</p>
+    <input id="courtShareEmail" type="email" inputmode="email" autocomplete="username" placeholder="LasO account email" aria-label="LasO account email">
+    <input id="courtSharePassword" type="password" autocomplete="current-password" placeholder="Password" aria-label="LasO password">
+    <button id="courtShareSignIn" type="button">Sign in to enable private sharing</button>
+  </div>
+  <div id="courtShareControls" hidden>
+    <div class="court-share-account">Signed in: <strong id="courtShareAccount"></strong> <button id="courtShareSignOut" type="button">Sign out</button></div>
+    <label class="court-share-consent"><input id="courtShareConsent" type="checkbox"> I confirm I have appropriate permission to share these players' camera images for private AI-assisted performance analysis, including permission from a parent/guardian if required.</label>
+    <div class="court-share-buttons"><button id="courtShareStart" type="button">Start sharing live</button><button id="courtShareStop" type="button" disabled>Stop sharing</button></div>
+    <div id="courtShareStarted" hidden><p class="court-share-code-intro">Send this session code in the ChatGPT conversation so the assistant can inspect current frames:</p><code id="courtShareCode">No active share</code><button type="button" id="courtShareCopy">Copy session code</button></div>
+  </div>
+  <p id="courtLiveStatus" role="status" aria-live="polite">Sharing is off. No video is uploaded unless you explicitly start it.</p>
+  <p class="court-share-smallprint">Images are downsampled before upload. Frames expire after approximately 10–15 minutes; the share expires after 45 minutes. Video is not stored as a recording. Only signed-in owners can access their own sessions in the app. ChatGPT can read a session when you provide its code, but cannot watch autonomously between messages.</p>
+</section>
+<div class="court-controls">
         <label class="court-file-picker">Choose game video
           <input id="courtFile" type="file" accept="video/*,.mp4,.mov,.webm,.m4v">
         </label>
@@ -2070,12 +2108,12 @@ showView = function(id) {
   }
 };
 </script>
-<script src="multi-court.js?v=3" defer></script>
+<script src="multi-court.js?v=4" defer></script><script src="live-share.js?v=1" defer></script>
 <script>
 (function(){
  var oldShowView=showView;
  showView=function(id){
-   if(id==='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.setup();
+   if(id==='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.setup();if(id==='multicourt'&&window.LasoCourtLiveShare)window.LasoCourtLiveShare.init();
    if(id!=='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.deactivate();
    oldShowView(id);
    if(id==='multicourt'&&window.LasoMultiCourt)setTimeout(function(){window.LasoMultiCourt.paint()},100);
