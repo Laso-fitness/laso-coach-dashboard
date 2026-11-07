@@ -29,6 +29,26 @@ async function userSession(){
  }
  return auth.user?.id;
 }
+function signInGoogle(){
+ const target=window.location.origin+'/court-lab.html';
+ const url=URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(target);
+ msg('Opening Google sign-in. If this site is not authorized for redirect, use your LasO email and password instead.');
+ window.location.assign(url);
+}
+async function receiveOAuth(){
+ const raw=window.location.hash.startsWith('#')?window.location.hash.slice(1):'';
+ if(!raw||!raw.includes('access_token='))return;
+ const p=new URLSearchParams(raw);
+ const token=p.get('access_token'),refresh=p.get('refresh_token');
+ window.history.replaceState(null,'',window.location.pathname+window.location.search);
+ if(!token||!refresh)return;
+ try{
+   const res=await json(await fetch(URL+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+token}}));
+   auth={access_token:token,refresh_token:refresh,expires_at:Math.floor(Date.now()/1000)+Number(p.get('expires_in')||3600),user:res};
+   sessionStorage.setItem(ST,JSON.stringify(auth));
+   showAccount();msg('Google account connected. Confirm athlete permission and enable sharing only when ready.');
+ }catch(e){msg('Google sign-in could not be confirmed: '+e.message)}
+}
 async function signIn(){
  const email=$('courtShareEmail').value.trim(),password=$('courtSharePassword').value;
  if(!email||!password){msg('Enter your existing LasO account email and password.');return}
@@ -134,6 +154,7 @@ async function signOut(){
 function init(){
  if(!$('courtLivePanel'))return;
  $('courtShareSignIn').onclick=signIn;
+ $('courtShareGoogle').onclick=signInGoogle;
  $('courtShareStart').onclick=startShare;
  $('courtShareStop').onclick=stopShare;
  $('courtShareSignOut').onclick=signOut;
@@ -145,7 +166,7 @@ function init(){
    const saved=sessionStorage.getItem(ST);
    if(saved){auth=JSON.parse(saved);if(!auth?.user?.id)auth=null}
  }catch{auth=null}
- showAccount();msg('Live sharing is OFF by default. Sign in and confirm recording permission to begin.');
+ showAccount();msg('Live sharing is OFF by default. Sign in and confirm recording permission to begin.');receiveOAuth();
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&active)msg('App is in the background. No background camera upload is supported; keep Court Lab open.')});
  window.addEventListener('pagehide',()=>{stopTimers()});
 }
