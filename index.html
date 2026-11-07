@@ -919,7 +919,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <p>Sign in using your existing LasO account (the same account as the current AI Trainer / App-e-Tight system).</p>
     <input id="courtShareEmail" type="email" inputmode="email" autocomplete="username" placeholder="LasO account email" aria-label="LasO account email">
     <input id="courtSharePassword" type="password" autocomplete="current-password" placeholder="Password" aria-label="LasO password">
-    <button id="courtShareSignIn" type="button">Sign in to enable private sharing</button>
+    <button id="courtShareSignIn" type="button">Sign in to enable private sharing</button><button id="courtShareGoogle" type="button">Continue with Google</button>
   </div>
   <div id="courtShareControls" hidden>
     <div class="court-share-account">Signed in: <strong id="courtShareAccount"></strong> <button id="courtShareSignOut" type="button">Sign out</button></div>
@@ -2108,7 +2108,7 @@ showView = function(id) {
   }
 };
 </script>
-<script src="multi-court.js?v=4" defer></script><script src="live-share.js?v=1" defer></script>
+<script src="multi-court.js?v=5" defer></script><script src="live-share.js?v=2" defer></script>
 <script>
 (function(){
  var oldShowView=showView;
