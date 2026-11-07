@@ -124,5 +124,7 @@ function setup(){
  window.addEventListener('resize',paint);
  status('Select a basketball video to track players locally.');
 }
-window.LasoMultiCourt={setup,stop,paint};
+function deactivate(){stop();stopStream();if(source==='live camera'){video.pause();video.srcObject=null;source=null;status('Live camera stopped when leaving Court Lab.')}}
+window.addEventListener('pagehide',deactivate);
+window.LasoMultiCourt={setup,stop,deactivate,paint};
 })();
