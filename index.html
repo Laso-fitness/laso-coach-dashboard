@@ -2115,6 +2115,7 @@ showView = function(id) {
  showView=function(id){
    if(id==='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.setup();if(id==='multicourt'&&window.LasoCourtLiveShare)window.LasoCourtLiveShare.init();
    if(id!=='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.deactivate();
+   if(id!=='multicourt'&&window.LasoCourtLiveShare)window.LasoCourtLiveShare.stopShare();
    oldShowView(id);
    if(id==='multicourt'&&window.LasoMultiCourt)setTimeout(function(){window.LasoMultiCourt.paint()},100);
  };
