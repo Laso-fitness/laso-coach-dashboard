@@ -1269,7 +1269,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="signInEmail()">Sign In</button>
     <div class="login-access-note">
       Coach access only. Contact Reginald to get access.<br>
-      <a href="https://app-e-tight.netlify.app" style="color:var(--gold);">→ App-E-Tight member login</a>
+      <a href="https://app-e-tight.netlify.app" style="color:var(--gold);">→ App-E-Tight member login</a><br><a href="/court-lab.html" style="color:var(--gold);font-weight:700;">🏀 Open Multi-Player Court Lab (local-only pilot)</a>
     </div>
   </div>
 </div>
@@ -2070,13 +2070,13 @@ showView = function(id) {
   }
 };
 </script>
-<script src="multi-court.js?v=1" defer></script>
+<script src="multi-court.js?v=3" defer></script>
 <script>
 (function(){
  var oldShowView=showView;
  showView=function(id){
    if(id==='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.setup();
-   if(id!=='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.stop();
+   if(id!=='multicourt'&&window.LasoMultiCourt)window.LasoMultiCourt.deactivate();
    oldShowView(id);
    if(id==='multicourt'&&window.LasoMultiCourt)setTimeout(function(){window.LasoMultiCourt.paint()},100);
  };
